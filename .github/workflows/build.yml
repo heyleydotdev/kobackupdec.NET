@@ -3,29 +3,32 @@ name: Build C# Executable
 on:
   push:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Allows manual trigger via GitHub button
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2019 # Uses a runner with legacy .NET Framework support built-in
 
     steps:
     - name: Checkout Source Code
       uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '6.0.x' # Adjust version if the repo uses an older/newer runtime
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
 
-    - name: Restore Dependencies
-      run: dotnet restore
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
 
-    - name: Publish Self-Contained Executable
-      run: dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o ./publish
+    - name: Restore NuGet Packages
+      run: nuget restore kobackupdec.NET.sln
 
-    - name: Upload Built Executable Artifact
+    - name: Build Solution
+      run: msbuild kobackupdec.NET.sln /p:Configuration=Release /p:Platform="Any CPU"
+
+    - name: Upload Built Executable
       uses: actions/upload-artifact@v4
       with:
-        name: kobackupdec-windows-x64
-        path: ./publish/kobackupdec.exe
+        name: kobackupdec-windows
+        path: |
+          **/bin/Release/kobackupdec.exe
+          **/bin/Release/*.dll
